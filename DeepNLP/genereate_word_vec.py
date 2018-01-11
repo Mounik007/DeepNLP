@@ -16,12 +16,12 @@ from collections import Counter
 VOCAB_SIZE = 30000
 DATA_PATH = "deepnlp/clean_chatbot.txt"
 EMBED_SIZE = 128
-SKIP_WINDOW = 1
+SKIP_WINDOW = 2
 NUM_SAMPLED = 64
-LEARNING_RATE = 1.0
-NUM_TRAINING_STEPS = 100000
+LEARNING_RATE = 1
+NUM_TRAINING_STEPS = 400
 WEIGHTS_FLD = 'processed/'
-SKIP_STEP = 2000
+SKIP_STEP = 50
 BATCH_SIZE = 16
 
 class SkipGramModel:
@@ -79,8 +79,9 @@ class SkipGramModel:
 		self.create_optimizer()
 		self.create_summaries()
 
-def genereate_sample(index_words, context_window_size):
+def generate_sample(index_words, context_window_size):
 	""" Form training pairs according to the skip gram model"""
+	# Implement list 
 	for idx, center in enumerate(index_words):
 		ctx = random.randint(1, context_window_size)
 		for tgt in index_words[max(0, idx - ctx) : idx]:
@@ -138,12 +139,14 @@ def train_model(model, batch_gen, num_train_steps, weights_fld):
 		for idx in range(initial_step, initial_step + num_train_steps):
 			#pdb.set_trace()
 			counter += 1
-			print(counter)
+			#print(counter)
 			centers, targets = next(batch_gen)
 			feed_dict = {model.center_words: centers, model.target_words: targets}
 			loss_batch, _, summary = sess.run([model.loss, model.optimizer, model.summary_op], feed_dict = feed_dict)
 			writer.add_summary(summary, global_step = idx)
 			total_loss += loss_batch
+			#print(idx)
+			#print(total_loss/idx)
 			if(idx + 1) % SKIP_STEP == 0:
 				print('Average loss at step {}: {:5.1f}'.format(idx, total_loss/SKIP_STEP))
 				total_loss = 0
@@ -155,18 +158,23 @@ def start_train_process(batch_gen):
 	#batch_gen = process_data(VOCAB_SIZE, BATCH_SIZE, SKIP_WINDOW)
 	train_model(model, batch_gen, NUM_TRAINING_STEPS, WEIGHTS_FLD)
 
-def generate_batch(index_words):
-	single_gen = genereate_sample(index_words, SKIP_WINDOW)
-	return get_batch(single_gen, BATCH_SIZE)
-
-if __name__ == '__main__':
-	words = get_words_from_txt(DATA_PATH)
-	print(len(words))
+def generate_batch(vocab_size, skip_window, batch_size, data_path):
+	words = get_words_from_txt(data_path)
 	#print(VOCAB_SIZE)
-	word_dict, index_dict = build_vocab(words, VOCAB_SIZE)
+	word_dict, index_dict = build_vocab(words, vocab_size)
 	index_words = convert_words_to_index(words, index_dict)
 	del words # To save space
-	#pdb.set_trace()
-	batch_gen = generate_batch(index_words)
-	start_train_process(batch_gen)
-	print("Completed")
+	single_gen = generate_sample(index_words, skip_window)
+	return get_batch(single_gen, batch_size)
+
+
+if __name__ == '__main__':
+	num_cycles = 35
+	for i in range(num_cycles):
+		tf.reset_default_graph()
+		batch_gen = generate_batch(VOCAB_SIZE, SKIP_WINDOW, BATCH_SIZE, DATA_PATH)
+		#pdb.set_trace()
+		start_train_process(batch_gen)
+		print("Completed {} cycle of passing through all the data".format(i+1))
+		batch_gen = None
+	print("Completed {} cycles of passing through the data".format(num_cycles))
