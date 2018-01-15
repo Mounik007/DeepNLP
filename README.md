@@ -34,18 +34,6 @@ The codebase consists of the below python files:
 
 > ml_rnn_model.py: This script currently generates word vectors using gensim library.
 
-```
-Give the example
-```
-
-And repeat
-
-```
-until finished
-```
-
-End with an example of getting some data out of the system or using it for a little demo
-
 ## Future Work
 
 The Recurrent neural network will be implemented in the script ml_rnn_model.py. Tests will be run on the neural netwok to see how the model performs on different hyperparameters. Once the results are finalized, attempts will be made to combine all the scripts and deliver it as one package. In other words, running one script will load, preprocess, train, test and show useful statstics on data.
